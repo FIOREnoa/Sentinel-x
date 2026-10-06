@@ -16,13 +16,13 @@ x-hardening: &hardening
 services:
   setup:
     image: alpine:3.20
-    profiles: ["setup"]
+    profiles: [ "setup" ]
     env_file: .env
     volumes:
       - ./tools/setup.sh:/setup.sh:ro
       - ./certs:/out/certs
       - ./mosquitto/config:/out/mosquitto
-    entrypoint: ["sh", "/setup.sh"]
+    entrypoint: [ "sh", "/setup.sh" ]
 
   db:
     <<: *hardening
@@ -35,9 +35,9 @@ services:
     volumes:
       - db-data:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d:ro
-    networks: [backend]
+    networks: [ backend ]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sentinel_admin -d sentinel"]
+      test: [ "CMD-SHELL", "pg_isready -U sentinel_admin -d sentinel" ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -53,7 +53,7 @@ services:
       - ./certs/server.crt:/mosquitto/certs/server.crt:ro
       - ./certs/server.key:/mosquitto/certs/server.key:ro
       - mosquitto-data:/mosquitto/data
-    networks: [backend]
+    networks: [ backend ]
 
   api:
     <<: *hardening
@@ -73,29 +73,44 @@ services:
         condition: service_healthy
       mosquitto:
         condition: service_started
-    networks: [backend]
+    networks: [ backend ]
     read_only: true
-    tmpfs: [/tmp]
-    cap_drop: [ALL]
+    tmpfs: [ /tmp ]
+    cap_drop: [ ALL ]
 
   nginx:
     <<: *hardening
-    image: nginxinc/nginx-unprivileged:1.27-alpine
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+      args:
+        VITE_DASHBOARD_TOKEN: ${DASHBOARD_TOKEN}
+
     ports:
       - "443:8443"
       - "80:8080"
+
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./nginx/html:/usr/share/nginx/html:ro
       - ./certs/server.crt:/etc/nginx/certs/server.crt:ro
       - ./certs/server.key:/etc/nginx/certs/server.key:ro
+
     extra_hosts:
-      - "host.docker.internal:host-gateway"   # accès au script vision qui tourne sur Windows
-    depends_on: [api]
-    networks: [backend]
+      - "host.docker.internal:host-gateway"
+
+    depends_on:
+      - api
+
+    networks:
+      - backend
+
     read_only: true
-    tmpfs: [/tmp, /var/cache/nginx]
-    cap_drop: [ALL]
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+
+    cap_drop:
+      - ALL
 
   vision:
     <<: *hardening
@@ -123,8 +138,8 @@ services:
     cap_drop: [ALL]
 
 networks:
-  backend: {}
+  backend: { }
 
 volumes:
-  db-data: {}
-  mosquitto-data: {}
+  db-data: { }
+  mosquitto-data: { }
