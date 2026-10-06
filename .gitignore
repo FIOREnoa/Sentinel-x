@@ -1,0 +1,23 @@
+# Secrets
+.env
+firmware/**/secrets.h
+certs/*
+!certs/.gitkeep
+mosquitto/config/passwd
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Vision
+vision/logs/
+*.pt
+
+# Dashboard (si Node)
+node_modules/
+dist/
+
+# Éditeurs et système
+.vscode/
+Thumbs.db

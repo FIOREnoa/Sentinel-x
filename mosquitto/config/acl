@@ -1,0 +1,11 @@
+# Chaque boîtier (nom d'utilisateur = identifiant, ex. esp01) ne peut publier que sur ses propres
+# topics et ne lit que ses propres commandes. Un boîtier compromis ne peut pas se faire passer pour un autre.
+pattern write sentinel/%u/telemetry
+pattern write sentinel/%u/event
+pattern write sentinel/%u/status
+pattern read  sentinel/%u/cmd
+
+# L'API lit tout et envoie les commandes
+user api
+topic read  sentinel/#
+topic write sentinel/+/cmd
