@@ -97,6 +97,31 @@ services:
     tmpfs: [/tmp, /var/cache/nginx]
     cap_drop: [ALL]
 
+  vision:
+    <<: *hardening
+    build: ./vision
+    profiles: ["vision"]
+    environment:
+      CAMERA: tcp://host.docker.internal:1235
+      API_URL: https://nginx:8443/api/v1/alerts
+      API_TOKEN: ${INGEST_TOKEN:?à définir dans .env}
+      CA_CERT: /certs/ca.crt
+      STREAM_TOKEN: ${STREAM_TOKEN:?à définir dans .env}
+      TLS_CERT: /certs/server.crt
+      TLS_KEY: /certs/server.key
+    volumes:
+      - ./certs/ca.crt:/certs/ca.crt:ro
+      - ./certs/server.crt:/certs/server.crt:ro
+      - ./certs/server.key:/certs/server.key:ro
+      - ./vision/logs:/app/logs
+    ports:
+      - "8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on: [nginx]
+    networks: [backend]
+    cap_drop: [ALL]
+
 networks:
   backend: {}
 
