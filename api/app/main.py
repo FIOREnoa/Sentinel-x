@@ -5,7 +5,8 @@ SENTINEL-X : API centrale.
 - S'abonne au broker MQTT pour la télémétrie et les événements de l'ESP8266
 - Stocke tout dans PostgreSQL
 - Pousse les nouvelles données au dashboard en WebSocket (/ws)
-- Transmet les commandes du dashboard (buzzer, LEDs) à l'ESP8266 via MQTT
+- Allume les LEDs du boîtier selon l'état de la caméra (rouge pendant une intrusion, verte sinon)
+- Transmet les commandes du dashboard (LEDs) à l'ESP8266 via MQTT
 """
 
 import asyncio
@@ -35,6 +36,7 @@ MQTT_CA = os.getenv("MQTT_CA", "/certs/ca.crt")
 INGEST_TOKEN = os.environ["INGEST_TOKEN"]
 DASHBOARD_TOKEN = os.environ["DASHBOARD_TOKEN"]
 DEVICE_TIMEOUT = int(os.getenv("DEVICE_TIMEOUT", "30"))   # secondes sans télémétrie = hors ligne
+ALARM_DEVICE = os.getenv("ALARM_DEVICE", "esp01")         # boîtier dont les LEDs suivent la caméra
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("sentinel-api")
@@ -112,12 +114,17 @@ class EventIn(BaseModel):
 
 
 class CommandIn(BaseModel):
+    """Commande envoyée par le dashboard.
+
+    alarm      : état complet (on = rouge allumée et verte éteinte, off = l'inverse)
+    led_alert  : LED rouge seule
+    led_status : LED verte seule
+    """
     model_config = ConfigDict(extra="forbid")
 
     device_id: str = Field(default="esp01", pattern=r"^[A-Za-z0-9_.-]{1,64}$")
-    target: Literal["buzzer", "led_alert", "led_status"]
-    action: Literal["on", "off", "blink"]
-    duration_ms: int | None = Field(default=None, ge=100, le=30_000)
+    target: Literal["alarm", "led_alert", "led_status"]
+    action: Literal["on", "off"]
 
 
 # --------------------------------------------------------------------------
@@ -292,6 +299,23 @@ async def mqtt_loop(pool):
             await asyncio.sleep(3)
 
 
+async def publish_command(pool, device_id: str, target: str, action: str, retain: bool = False) -> dict | None:
+    """Publie une commande sur sentinel/<device>/cmd et l'enregistre. Renvoie None si le broker est absent."""
+    if mqtt_client is None:
+        log.warning("Commande %s/%s non envoyée à %s : broker MQTT indisponible", target, action, device_id)
+        return None
+    payload = {"target": target, "action": action}
+    # Format compact, sans espaces : le firmware compare le texte tel quel
+    await mqtt_client.publish(f"sentinel/{device_id}/cmd", json.dumps(payload, separators=(",", ":")),
+                              qos=1, retain=retain)
+    await pool.execute(
+        "INSERT INTO commands (device_id, target, action, params) VALUES ($1, $2, $3, $4)",
+        device_id, target, action, {},
+    )
+    log.info("Commande envoyée à %s : %s", device_id, payload)
+    return payload
+
+
 # --------------------------------------------------------------------------
 # Application
 # --------------------------------------------------------------------------
@@ -334,6 +358,15 @@ async def create_alert(alert: AlertIn):
         app.state.pool, source=alert.source, device_id=alert.device_id, type_=alert.type,
         severity=alert.severity, zone=alert.zone, details=details, snapshot=alert.snapshot,
     )
+    # Les LEDs du boîtier suivent l'état de la caméra : rouge pendant une intrusion, verte sinon.
+    # Message retenu : l'ESP retrouve le bon état s'il redémarre pendant une intrusion.
+    if alert.source == "camera" and alert.type in ("intrusion", "intrusion_terminee"):
+        action = "on" if alert.type == "intrusion" else "off"
+        try:
+            await publish_command(app.state.pool, ALARM_DEVICE, "alarm", action, retain=True)
+        except Exception:
+            # Un problème MQTT ne doit jamais empêcher l'enregistrement de l'alerte
+            log.exception("Échec de l'envoi de la commande d'alarme")
     return {"id": created["id"]}
 
 
@@ -393,16 +426,11 @@ async def list_devices():
 
 @app.post("/api/v1/commands", status_code=202, dependencies=[Depends(require_dashboard)])
 async def send_command(cmd: CommandIn):
-    if mqtt_client is None:
+    sent = await publish_command(app.state.pool, cmd.device_id, cmd.target, cmd.action,
+                                 retain=(cmd.target == "alarm"))
+    if sent is None:
         raise HTTPException(status_code=503, detail="broker MQTT indisponible")
-    payload = cmd.model_dump(exclude={"device_id"}, exclude_none=True)
-    await mqtt_client.publish(f"sentinel/{cmd.device_id}/cmd", json.dumps(payload), qos=1)
-    await app.state.pool.execute(
-        "INSERT INTO commands (device_id, target, action, params) VALUES ($1, $2, $3, $4)",
-        cmd.device_id, cmd.target, cmd.action, {"duration_ms": cmd.duration_ms} if cmd.duration_ms else {},
-    )
-    log.info("Commande envoyée à %s : %s", cmd.device_id, payload)
-    return {"sent": payload}
+    return {"sent": sent}
 
 
 @app.websocket("/ws")
