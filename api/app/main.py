@@ -490,6 +490,43 @@ async def telemetry(device_id: str = Query("esp01", pattern=r"^[A-Za-z0-9_.-]{1,
     return [dict(r) for r in rows]
 
 
+# Historique regroupé par tranches de temps : environ 180 à 360 points quelle que soit la période,
+# pour que les courbes restent fluides même sur 30 jours (une mesure toutes les 2,5 s sinon).
+HISTORY_RANGES = {
+    #       période                      taille d'une tranche
+    "15m": (timedelta(minutes=15), timedelta(seconds=5)),
+    "1h":  (timedelta(hours=1),    timedelta(seconds=15)),
+    "6h":  (timedelta(hours=6),    timedelta(minutes=1)),
+    "24h": (timedelta(hours=24),   timedelta(minutes=5)),
+    "7d":  (timedelta(days=7),     timedelta(minutes=30)),
+    "30d": (timedelta(days=30),    timedelta(hours=2)),
+}
+
+
+@app.get("/api/v1/telemetry/history", dependencies=[Depends(require_any)])
+async def telemetry_history(device_id: str = Query("esp01", pattern=r"^[A-Za-z0-9_.-]{1,64}$"),
+                            range: Literal["15m", "1h", "6h", "24h", "7d", "30d"] = "1h"):
+    period, bucket = HISTORY_RANGES[range]
+    rows = await app.state.pool.fetch(
+        """SELECT date_bin($3::interval, ts, TIMESTAMPTZ '2000-01-01') AS ts,
+                  round(avg(temperature)::numeric, 2) AS temperature,
+                  round(avg(humidity)::numeric, 1)    AS humidity,
+                  round(avg(gas)::numeric, 0)         AS gas,
+                  max(gas)                            AS gas_max,
+                  bool_or(motion)                     AS motion
+           FROM telemetry
+           WHERE device_id = $1 AND ts > now() - $2::interval
+           GROUP BY 1 ORDER BY 1""",
+        device_id, period, bucket,
+    )
+    points = [{"ts": r["ts"],
+               "temperature": float(r["temperature"]) if r["temperature"] is not None else None,
+               "humidity": float(r["humidity"]) if r["humidity"] is not None else None,
+               "gas": int(r["gas"]) if r["gas"] is not None else None,
+               "gas_max": r["gas_max"], "motion": r["motion"]} for r in rows]
+    return {"range": range, "bucket_seconds": int(bucket.total_seconds()), "points": points}
+
+
 @app.get("/api/v1/devices", dependencies=[Depends(require_dashboard)])
 async def list_devices():
     return [device_view(d) for d in devices]

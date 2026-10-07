@@ -71,6 +71,12 @@ export async function getTelemetry({ device_id, minutes, limit } = {}) {
   return request(`/telemetry${query ? `?${query}` : ""}`);
 }
 
+// Historique regroupé par tranches : range = 15m, 1h, 6h, 24h, 7d ou 30d
+export async function getTelemetryHistory({ device_id = "esp01", range = "1h" } = {}) {
+  const params = new URLSearchParams({ device_id, range });
+  return request(`/telemetry/history?${params.toString()}`);
+}
+
 export async function getAlerts({ limit, unacked } = {}) {
   const params = new URLSearchParams();
   if (limit !== undefined) params.set("limit", limit);
