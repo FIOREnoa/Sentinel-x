@@ -4,6 +4,7 @@ import {
   Legend,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -33,9 +34,19 @@ const COLORS = {
 
 const REFRESH_MS = 60e3;   // les longues périodes sont rechargées chaque minute
 
-function TelemetryCharts({ telemetry, deviceId = "esp01" }) {
+// Couleur des repères d'alerte selon leur gravité
+const ALERT_COLORS = { critical: "#ef4444", warning: "#f59e0b", info: "#64748b" };
+const ALERT_LABELS = {
+  intrusion: "Intrusion caméra",
+  motion: "Mouvement",
+  gas_alarm: "Alarme gaz",
+  device_offline: "Boîtier hors ligne",
+};
+
+function TelemetryCharts({ telemetry, alerts = [], deviceId = "esp01" }) {
   const [rangeId, setRangeId] = useState("1h");
   const [points, setPoints] = useState([]);
+  const [markers, setMarkers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -51,6 +62,7 @@ function TelemetryCharts({ telemetry, deviceId = "esp01" }) {
         const res = await getTelemetryHistory({ device_id: deviceId, range: rangeId });
         if (!cancelled) {
           setPoints((res.points || []).map(toPoint));
+          setMarkers((res.alerts || []).map(toMarker));
           setError(null);
         }
       } catch (err) {
@@ -84,7 +96,32 @@ function TelemetryCharts({ telemetry, deviceId = "esp01" }) {
     });
   }, [latest, range, deviceId]);
 
+  // Nouvelles alertes reçues en direct : ajoutées comme repères sur les courbes
+  const newestAlert = alerts.length > 0 ? alerts[0] : null;
+
+  useEffect(() => {
+    if (!newestAlert?.ts || !ALERT_LABELS[newestAlert.type]) return;
+    const marker = toMarker(newestAlert);
+    setMarkers((previous) =>
+      previous.some((m) => m.id === marker.id) ? previous : [...previous, marker]
+    );
+  }, [newestAlert]);
+
   const now = Date.now();
+  const visibleMarkers = markers.filter((m) => m.t >= now - range.ms);
+
+  const renderMarkers = (yAxisId) =>
+    visibleMarkers.map((m) => (
+      <ReferenceLine
+        key={m.id}
+        x={m.t}
+        yAxisId={yAxisId}
+        stroke={ALERT_COLORS[m.severity] || ALERT_COLORS.info}
+        strokeOpacity={m.severity === "critical" ? 0.9 : 0.4}
+        strokeWidth={m.severity === "critical" ? 2 : 1}
+        ifOverflow="hidden"
+      />
+    ));
   const domain = [now - range.ms, now];
   const tickFormatter = useMemo(() => makeTickFormatter(range.ms), [range.ms]);
 
@@ -176,6 +213,7 @@ function TelemetryCharts({ telemetry, deviceId = "esp01" }) {
                 activeDot={{ r: 4 }}
                 isAnimationActive={false}
               />
+              {renderMarkers("temp")}
               <Line
                 yAxisId="hum"
                 type="monotone"
@@ -197,10 +235,12 @@ function TelemetryCharts({ telemetry, deviceId = "esp01" }) {
             <LineChart data={points} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} />
               {xAxis}
-              <YAxis stroke={COLORS.axis} tick={{ fontSize: 11 }} domain={["auto", "auto"]} width={45} />
+              <YAxis yAxisId="gas" stroke={COLORS.axis} tick={{ fontSize: 11 }} domain={["auto", "auto"]} width={45} />
               <Tooltip {...tooltipProps} formatter={formatValue} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
+              {renderMarkers("gas")}
               <Line
+                yAxisId="gas"
                 type="monotone"
                 dataKey="gas"
                 name="Gaz (moyenne)"
@@ -211,6 +251,7 @@ function TelemetryCharts({ telemetry, deviceId = "esp01" }) {
               />
               {!range.live && (
                 <Line
+                  yAxisId="gas"
                   type="monotone"
                   dataKey="gas_max"
                   name="Gaz (pic)"
@@ -225,8 +266,25 @@ function TelemetryCharts({ telemetry, deviceId = "esp01" }) {
           </ResponsiveContainer>
         </div>
       </div>
+
+      <div className="chart-markers-legend">
+        <span><i style={{ background: ALERT_COLORS.critical }} /> Intrusion caméra, alarme gaz</span>
+        <span><i style={{ background: ALERT_COLORS.warning, opacity: 0.6 }} /> Mouvement, boîtier hors ligne</span>
+        <span className="chart-markers-count">
+          {visibleMarkers.length} alerte{visibleMarkers.length > 1 ? "s" : ""} sur la période
+        </span>
+      </div>
     </section>
   );
+}
+
+function toMarker(alert) {
+  return {
+    id: alert.id,
+    t: new Date(alert.ts).getTime(),
+    type: alert.type,
+    severity: alert.severity,
+  };
 }
 
 // Mesure (direct ou historique) -> point du graphique, avec l'heure en millisecondes

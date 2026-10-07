@@ -806,4 +806,38 @@ button {
   bottom: 16px;
   right: 16px;
   z-index: 10;
+}/* REPÈRES D'ALERTE ET CAMÉRA EN DIRECT (à coller à la fin de frontend/src/style.css) */
+
+.chart-markers-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+
+  padding: 0 18px 16px;
+
+  color: #8d9ca7;
+  font-size: 11px;
+}
+
+.chart-markers-legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chart-markers-legend i {
+  display: inline-block;
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+}
+
+.chart-markers-count {
+  margin-left: auto;
+}
+
+.camera-live {
+  aspect-ratio: 4 / 3;
+  object-fit: contain !important;
 }

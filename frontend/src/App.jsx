@@ -222,7 +222,7 @@ function Dashboard({ onLogout }) {
         />
 
         <section className="dashboard-grid dashboard-grid-large">
-          <TelemetryCharts telemetry={telemetry} />
+          <TelemetryCharts telemetry={telemetry} alerts={alerts} />
 
           <DevicesPanel devices={devices} />
         </section>

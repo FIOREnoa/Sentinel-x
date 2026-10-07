@@ -359,6 +359,24 @@ async def publish_command(pool, device_id: str, target: str, action: str, retain
     return payload
 
 
+async def device_watchdog():
+    """Prévient le dashboard quand un boîtier passe en ligne ou hors ligne.
+
+    Un boîtier est hors ligne s'il a annoncé "offline" (Last Will) ou s'il n'a rien envoyé
+    depuis DEVICE_TIMEOUT secondes. Sans cette vérification, le dashboard resterait sur
+    "en ligne" quand l'ESP est débranché sans prévenir.
+    """
+    while True:
+        await asyncio.sleep(5)
+        for device_id in list(devices):
+            view = device_view(device_id)
+            d = devices[device_id]
+            if d.get("online_sent") != view["online"]:
+                d["online_sent"] = view["online"]
+                log.info("Boîtier %s %s", device_id, "en ligne" if view["online"] else "hors ligne")
+                await hub.broadcast("device", view)
+
+
 # --------------------------------------------------------------------------
 # Application
 # --------------------------------------------------------------------------
@@ -375,7 +393,9 @@ async def lifespan(app: FastAPI):
     else:
         raise RuntimeError("Impossible de se connecter à la base")
     task = asyncio.create_task(mqtt_loop(app.state.pool))
+    watchdog = asyncio.create_task(device_watchdog())
     yield
+    watchdog.cancel()
     task.cancel()
     await app.state.pool.close()
 
@@ -524,7 +544,15 @@ async def telemetry_history(device_id: str = Query("esp01", pattern=r"^[A-Za-z0-
                "humidity": float(r["humidity"]) if r["humidity"] is not None else None,
                "gas": int(r["gas"]) if r["gas"] is not None else None,
                "gas_max": r["gas_max"], "motion": r["motion"]} for r in rows]
-    return {"range": range, "bucket_seconds": int(bucket.total_seconds()), "points": points}
+    # Alertes de la période, affichées comme repères verticaux sur les courbes
+    alert_rows = await app.state.pool.fetch(
+        """SELECT id, ts, source, type, severity FROM alerts
+           WHERE ts > now() - $1::interval AND type <> 'motion_end' AND type <> 'intrusion_terminee'
+           ORDER BY ts DESC LIMIT 300""",
+        period,
+    )
+    return {"range": range, "bucket_seconds": int(bucket.total_seconds()), "points": points,
+            "alerts": [dict(r) for r in reversed(alert_rows)]}
 
 
 @app.get("/api/v1/devices", dependencies=[Depends(require_dashboard)])

@@ -83,32 +83,26 @@ services:
     build:
       context: .
       dockerfile: nginx/Dockerfile
-      args:
-        VITE_DASHBOARD_TOKEN: ${DASHBOARD_TOKEN}
-
+    environment:
+      STREAM_TOKEN: ${STREAM_TOKEN:?à définir dans .env}
+      NGINX_ENVSUBST_OUTPUT_DIR: /tmp
     ports:
       - "443:8443"
       - "80:8080"
-
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/templates:/etc/nginx/templates:ro
       - ./certs/server.crt:/etc/nginx/certs/server.crt:ro
       - ./certs/server.key:/etc/nginx/certs/server.key:ro
-
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-
+      - ./certs/ca.crt:/etc/nginx/certs/ca.crt:ro
     depends_on:
       - api
-
     networks:
       - backend
-
     read_only: true
     tmpfs:
       - /tmp
       - /var/cache/nginx
-
     cap_drop:
       - ALL
 
@@ -124,13 +118,15 @@ services:
       STREAM_TOKEN: ${STREAM_TOKEN:?à définir dans .env}
       TLS_CERT: /certs/server.crt
       TLS_KEY: /certs/server.key
+      IMGSZ: "320"
+      JPEG_QUALITY: "60"
     volumes:
       - ./certs/ca.crt:/certs/ca.crt:ro
       - ./certs/server.crt:/certs/server.crt:ro
       - ./certs/server.key:/certs/server.key:ro
       - ./vision/logs:/app/logs
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on: [nginx]
