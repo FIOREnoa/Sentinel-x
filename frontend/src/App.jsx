@@ -8,17 +8,21 @@ import AlertsPanel from "./components/AlertsPanel";
 import CameraPanel from "./components/CameraPanel";
 import DeviceControls from "./components/DeviceControls";
 
+import Login from "./components/Login";
+
 import {
   acknowledgeAlert,
+  checkSession,
   getAlerts,
   getDevices,
   getHealth,
   getTelemetry,
+  logout,
 } from "./services/api";
 
 import { useWebSocket } from "./hooks/useWebSocket";
 
-function App() {
+function Dashboard({ onLogout }) {
   const [health, setHealth] = useState(null);
   const [telemetry, setTelemetry] = useState([]);
   const [devices, setDevices] = useState([]);
@@ -199,6 +203,10 @@ function App() {
         onlineDevices={onlineDevices}
       />
 
+      <button className="button button-secondary logout-button" onClick={onLogout}>
+        Déconnexion
+      </button>
+
       <main className="dashboard">
         {error && (
           <div className="error-banner">
@@ -260,6 +268,34 @@ function normalizeList(response) {
   }
 
   return [];
+}
+
+// Écran de connexion tant qu'aucune session valide n'existe
+function App() {
+  const [authenticated, setAuthenticated] = useState(null);   // null = vérification en cours
+
+  useEffect(() => {
+    checkSession().then(setAuthenticated);
+    const onUnauthorized = () => setAuthenticated(false);
+    window.addEventListener("sentinel:unauthorized", onUnauthorized);
+    return () => window.removeEventListener("sentinel:unauthorized", onUnauthorized);
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      setAuthenticated(false);
+    }
+  };
+
+  if (authenticated === null) {
+    return <div className="loading-overlay">Vérification de la session...</div>;
+  }
+  if (!authenticated) {
+    return <Login onSuccess={() => setAuthenticated(true)} />;
+  }
+  return <Dashboard onLogout={handleLogout} />;
 }
 
 export default App;

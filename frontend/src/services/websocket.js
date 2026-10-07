@@ -1,40 +1,21 @@
+// Connexion temps réel. Le navigateur joint le cookie de session à la demande
+// de connexion : aucun jeton dans l'adresse.
 export function createWebSocket(onMessage, onStatusChange) {
-  const token = import.meta.env.VITE_DASHBOARD_TOKEN || "";
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
 
-  const protocol =
-    window.location.protocol === "https:" ? "wss:" : "ws:";
-
-  const query = token
-    ? `?token=${encodeURIComponent(token)}`
-    : "";
-
-  const url = `${protocol}//${window.location.host}/ws${query}`;
-
-  const socket = new WebSocket(url);
-
-  socket.onopen = () => {
-    console.log("WebSocket connected");
-    onStatusChange?.("connected");
-  };
+  socket.onopen = () => onStatusChange?.("connected");
 
   socket.onmessage = (event) => {
     try {
-      const message = JSON.parse(event.data);
-      onMessage?.(message);
+      onMessage?.(JSON.parse(event.data));
     } catch (error) {
-      console.error("Invalid WebSocket message:", error);
+      console.error("Message WebSocket invalide :", error);
     }
   };
 
-  socket.onerror = (error) => {
-    console.error("WebSocket error:", error);
-    onStatusChange?.("error");
-  };
-
-  socket.onclose = () => {
-    console.log("WebSocket disconnected");
-    onStatusChange?.("disconnected");
-  };
+  socket.onerror = () => onStatusChange?.("error");
+  socket.onclose = () => onStatusChange?.("disconnected");
 
   return socket;
 }

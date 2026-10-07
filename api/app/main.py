@@ -23,8 +23,8 @@ from typing import Literal
 
 import aiomqtt
 import asyncpg
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, WebSocket, WebSocketDisconnect
-from fastapi.responses import Response
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 DATABASE_URL = os.environ["DATABASE_URL"]
@@ -37,6 +37,8 @@ INGEST_TOKEN = os.environ["INGEST_TOKEN"]
 DASHBOARD_TOKEN = os.environ["DASHBOARD_TOKEN"]
 DEVICE_TIMEOUT = int(os.getenv("DEVICE_TIMEOUT", "30"))   # secondes sans télémétrie = hors ligne
 ALARM_DEVICE = os.getenv("ALARM_DEVICE", "esp01")         # boîtier dont les LEDs suivent la caméra
+SESSION_TTL = int(os.getenv("SESSION_TTL", str(8 * 3600)))  # durée d'une session du dashboard (secondes)
+SESSION_COOKIE = "sentinel_session"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("sentinel-api")
@@ -113,6 +115,12 @@ class EventIn(BaseModel):
     message: str | None = Field(default=None, max_length=100)
 
 
+class LoginIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    token: str = Field(min_length=1, max_length=200)
+
+
 class CommandIn(BaseModel):
     """Commande envoyée par le dashboard.
 
@@ -128,17 +136,44 @@ class CommandIn(BaseModel):
 
 
 # --------------------------------------------------------------------------
-# Authentification par jeton
+# Authentification
+#
+# - Scripts (caméra, ML, tests) : en-tête "Authorization: Bearer <jeton>"
+# - Dashboard : le jeton est saisi une fois dans l'écran de connexion, l'API répond par un
+#   cookie de session aléatoire (HttpOnly, Secure, SameSite=Strict). Le jeton n'est jamais
+#   stocké dans le navigateur ni dans le code de la page.
 # --------------------------------------------------------------------------
+
+sessions: dict[str, datetime] = {}   # identifiant de session -> date d'expiration
+
 
 def _same(a: str, b: str) -> bool:
     return secrets.compare_digest(a.encode(), b.encode())
 
 
+def _bearer_value(authorization: str | None) -> str | None:
+    if authorization and authorization.startswith("Bearer "):
+        return authorization[7:]
+    return None
+
+
+def session_valid(sid: str | None) -> bool:
+    if not sid:
+        return False
+    expires = sessions.get(sid)
+    if expires is None:
+        return False
+    if expires < datetime.now(timezone.utc):
+        sessions.pop(sid, None)
+        return False
+    return True
+
+
 def bearer(authorization: str | None = Header(default=None)) -> str:
-    if not authorization or not authorization.startswith("Bearer "):
+    token = _bearer_value(authorization)
+    if token is None:
         raise HTTPException(status_code=401, detail="jeton manquant")
-    return authorization[7:]
+    return token
 
 
 def require_ingest(token: str = Depends(bearer)):
@@ -146,14 +181,22 @@ def require_ingest(token: str = Depends(bearer)):
         raise HTTPException(status_code=401, detail="jeton invalide")
 
 
-def require_dashboard(token: str = Depends(bearer)):
-    if not _same(token, DASHBOARD_TOKEN):
-        raise HTTPException(status_code=401, detail="jeton invalide")
+def require_dashboard(request: Request, authorization: str | None = Header(default=None)):
+    if session_valid(request.cookies.get(SESSION_COOKIE)):
+        return
+    token = _bearer_value(authorization)
+    if token is not None and _same(token, DASHBOARD_TOKEN):
+        return
+    raise HTTPException(status_code=401, detail="authentification requise")
 
 
-def require_any(token: str = Depends(bearer)):
-    if not (_same(token, DASHBOARD_TOKEN) or _same(token, INGEST_TOKEN)):
-        raise HTTPException(status_code=401, detail="jeton invalide")
+def require_any(request: Request, authorization: str | None = Header(default=None)):
+    if session_valid(request.cookies.get(SESSION_COOKIE)):
+        return
+    token = _bearer_value(authorization)
+    if token is not None and (_same(token, DASHBOARD_TOKEN) or _same(token, INGEST_TOKEN)):
+        return
+    raise HTTPException(status_code=401, detail="authentification requise")
 
 
 # --------------------------------------------------------------------------
@@ -340,6 +383,34 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="SENTINEL-X API", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 
 
+@app.post("/api/v1/login")
+async def login(body: LoginIn):
+    if not _same(body.token, DASHBOARD_TOKEN):
+        await asyncio.sleep(1)   # ralentit les essais de jetons en série
+        log.warning("Échec de connexion au dashboard")
+        raise HTTPException(status_code=401, detail="jeton invalide")
+    sid = secrets.token_urlsafe(32)
+    sessions[sid] = datetime.now(timezone.utc) + timedelta(seconds=SESSION_TTL)
+    resp = JSONResponse({"ok": True})
+    resp.set_cookie(SESSION_COOKIE, sid, max_age=SESSION_TTL, path="/",
+                    httponly=True, secure=True, samesite="strict")
+    log.info("Connexion au dashboard ouverte")
+    return resp
+
+
+@app.post("/api/v1/logout")
+async def logout(request: Request):
+    sessions.pop(request.cookies.get(SESSION_COOKIE, ""), None)
+    resp = JSONResponse({"ok": True})
+    resp.delete_cookie(SESSION_COOKIE, path="/")
+    return resp
+
+
+@app.get("/api/v1/session", dependencies=[Depends(require_dashboard)])
+async def session_check():
+    return {"ok": True}
+
+
 @app.get("/api/v1/health")
 async def health():
     db_ok = True
@@ -434,9 +505,9 @@ async def send_command(cmd: CommandIn):
 
 
 @app.websocket("/ws")
-async def websocket(ws: WebSocket, token: str = Query(default="")):
-    # Un navigateur ne peut pas envoyer d'en-tête Authorization en WebSocket : jeton en paramètre
-    if not _same(token, DASHBOARD_TOKEN):
+async def websocket(ws: WebSocket):
+    # Le navigateur envoie le cookie de session avec la demande de connexion WebSocket
+    if not session_valid(ws.cookies.get(SESSION_COOKIE)):
         await ws.close(code=1008)
         return
     await ws.accept()
