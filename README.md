@@ -243,17 +243,4 @@ python tools\simulate_esp.py
 | `docker compose down` affiche « Resource is still in use » | l'écoute de l'onglet « Capteurs ESP » est encore branchée sur le réseau | sans conséquence ; fermer l'onglet avant l'arrêt |
 | Retour à l'écran de connexion | le conteneur api a redémarré (sessions en mémoire) | se reconnecter |
 
-## Sécurité en place
-
-- MQTT uniquement en TLS 1.2 minimum (port 8883), sans accès anonyme, avec comptes et ACL par boîtier. Limites de taille de message et de nombre de connexions.
-- HTTPS uniquement : le port 80 redirige vers 443. En-têtes de sécurité (CSP, HSTS, X-Frame-Options, nosniff, Referrer-Policy), version de nginx masquée, documentation automatique de l'API désactivée.
-- Certificats ECDSA P-256 signés par une autorité propre au groupe, vérifiés par l'ESP, l'API, la vision et nginx. Le certificat serveur couvre `localhost`, les noms des services et `SERVER_IP`.
-- Dashboard protégé par un écran de connexion et un cookie de session ; aucun jeton dans le code de la page. Tentatives de connexion limitées par nginx (5 par minute et par adresse) et retardées par l'API.
-- Flux caméra servi par nginx uniquement aux utilisateurs connectés ; le jeton du flux est ajouté côté serveur.
-- Deux jetons séparés : INGEST pour écrire des alertes, DASHBOARD pour lire et commander.
-- Toutes les entrées sont validées : types, bornes physiques des capteurs, champs inconnus refusés, image vérifiée comme un vrai JPEG, taille limitée (512 Ko par requête HTTP, 4 Ko par message MQTT). Commande MQTT bornée en mémoire dans le firmware.
-- Base de données sans port exposé. L'API utilise un compte limité : lecture et insertion, mise à jour réservée aux colonnes d'acquittement, aucune suppression.
-- Conteneurs sans privilèges : `no-new-privileges` partout, capacités Linux retirées, système de fichiers en lecture seule pour l'API et nginx, utilisateurs non root pour l'API, nginx et la vision.
-- Pare-feu Windows : 80, 443 et 8883 joignables seulement depuis le point d'accès ; 8000, 1235 et 5432 bloqués depuis le réseau.
-- Journaux Docker limités à 3 fichiers de 10 Mo par service.
-- Aucun secret dans le dépôt : `.env`, `vision/.env`, `firmware/**/secrets.h`, `certs/` et `mosquitto/config/passwd` sont dans `.gitignore` ; seuls les modèles `.example` sont versionnés.
+Les mesures de sécurité et leur justification sont décrites dans le dossier d'ingénierie (Workshop2026-M1-G[n]-Dossier.pdf).
