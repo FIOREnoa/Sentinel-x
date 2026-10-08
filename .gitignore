@@ -21,3 +21,4 @@ dist/
 # Éditeurs et système
 .vscode/
 Thumbs.db
+.idea/
