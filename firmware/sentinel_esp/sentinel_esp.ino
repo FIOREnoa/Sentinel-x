@@ -23,12 +23,19 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 DHT dht(DHTPIN, DHTTYPE);
 
 
-// PIR sur D7 (GPIO 13)
+// Détecteur de mouvement (PIR) sur D7 (GPIO 13)
 #define PIR_PIN 13
 
 
 // [RÉSEAU] MQ-2 sur A0
 #define GAS_PIN A0
+
+
+// LEDs d'état. Le nombre est le numéro GPIO, c'est lui que l'ESP utilise :
+// D0 = GPIO 16, D5 = GPIO 14, D6 = GPIO 12
+#define LED_VERTE 16   // D0
+#define LED_ROUGE 12   // D6
+#define LED_BLEUE 14   // D5
 
 
 // [RÉSEAU] Broker MQTT sur le PC (hotspot Windows)
@@ -62,6 +69,7 @@ float lastHum = 0.0;
 bool hasValidReading = false;
 bool ecranAllume = true;
 bool presenceActive = false;
+bool alarmeDistante = false;   // alarme envoyée par l'API (caméra)
 
 
 
@@ -69,11 +77,38 @@ bool presenceActive = false;
 // ---------- [RÉSEAU] ----------
 
 
+// Commandes reçues sur sentinel/esp01/cmd, au format {"target":"...","action":"on|off"}
 void onCommand(char* topic, byte* payload, unsigned int len) {
-  Serial.print("Commande reçue : ");
-  Serial.write(payload, len);
-  Serial.println();
-  // À compléter quand le format des commandes de l'API sera fixé (buzzer, LEDs)
+  // Copie bornée : un message trop long est tronqué au lieu de déborder en mémoire
+  char msg[96];
+  unsigned int n = len < sizeof(msg) - 1 ? len : sizeof(msg) - 1;
+  memcpy(msg, payload, n);
+  msg[n] = '\0';
+  Serial.printf("Commande reçue : %s\n", msg);
+
+
+  bool on  = strstr(msg, "\"action\":\"on\"")  != nullptr;
+  bool off = strstr(msg, "\"action\":\"off\"") != nullptr;
+  if (!on && !off) return;   // action inconnue : ignorée
+
+
+  // alarm et led_alert : on = alarme, off = fin d'alarme
+  // led_status : on = tout va bien (verte), off = alarme
+  if (strstr(msg, "\"target\":\"alarm\"") || strstr(msg, "\"target\":\"led_alert\"")) {
+    alarmeDistante = on;
+  } else if (strstr(msg, "\"target\":\"led_status\"")) {
+    alarmeDistante = !on;
+  }
+}
+
+
+// Rouge si la caméra signale une intrusion OU si le détecteur de mouvement voit quelqu'un, verte sinon
+void majLeds() {
+  bool rouge = alarmeDistante || presenceActive;
+  digitalWrite(LED_ROUGE, rouge ? HIGH : LOW);
+  digitalWrite(LED_VERTE, rouge ? LOW : HIGH);
+  // Bleue fixe si connecté au broker, clignotante sinon (période de 500 ms)
+  digitalWrite(LED_BLEUE, mqtt.connected() ? HIGH : ((millis() / 500) % 2 == 0 ? HIGH : LOW));
 }
 
 
@@ -132,10 +167,8 @@ void envoyerEvenementPresence() {
 void afficherStatutReseau() {
   display.setCursor(0, 0);
   if (WiFi.status() != WL_CONNECTED) {
-        display.print("Wi-Fi etat ");
+    display.print("Wi-Fi etat ");
     display.print(WiFi.status());
-
-
   } else {
     display.print(WiFi.localIP());
     display.print(mqtt.connected() ? " OK" : " MQTT..");
@@ -216,7 +249,7 @@ void afficherEcran(bool mouvement) {
 
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
-  afficherStatutReseau();   // [RÉSEAU] remplace le titre "STATION METEO"
+  afficherStatutReseau();
   display.drawLine(0, 9, 127, 9, SSD1306_WHITE);
 
 
@@ -274,8 +307,29 @@ void setup() {
   pinMode(PIR_PIN, INPUT);
 
 
+  // Sorties LED, éteintes au départ
+  pinMode(LED_VERTE, OUTPUT);
+  pinMode(LED_ROUGE, OUTPUT);
+  pinMode(LED_BLEUE, OUTPUT);
+  digitalWrite(LED_VERTE, LOW);
+  digitalWrite(LED_ROUGE, LOW);
+  digitalWrite(LED_BLEUE, LOW);
+
+
+  // Test du câblage : verte, rouge puis bleue s'allument une seconde chacune
+  int leds[] = {LED_VERTE, LED_ROUGE, LED_BLEUE};
+  const char* noms[] = {"verte", "rouge", "bleue"};
+  for (int i = 0; i < 3; i++) {
+    Serial.printf("LED %s : HIGH\n", noms[i]);
+    digitalWrite(leds[i], HIGH); delay(1000);
+    Serial.printf("LED %s : LOW\n", noms[i]);
+    digitalWrite(leds[i], LOW);  delay(1000);
+  }
+
+
+  // Sans écran, le boîtier continue de fonctionner (capteurs, LEDs, réseau)
   if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-    for (;;);
+    Serial.println("Ecran OLED introuvable, poursuite sans affichage");
   }
 
 
@@ -328,6 +382,7 @@ void loop() {
 
 
   envoyerEvenementPresence();   // [RÉSEAU]
+  majLeds();
 
 
   // 2. Gestion de l'extinction
@@ -362,5 +417,9 @@ void loop() {
 
   delay(200);
 }
+
+
+
+
 
 
