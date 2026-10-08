@@ -600,11 +600,12 @@ function Users({ currentUser, onLogout }) {
                           Mot de passe
                         </button>
 
+
                         <button
                           type="button"
                           className="button danger user-action-button"
                           disabled={
-                            user.id === currentUser?.id
+                            user.id === currentUser?.id || user.role === "admin"
                           }
                           onClick={() =>
                             openDeleteModal(user)

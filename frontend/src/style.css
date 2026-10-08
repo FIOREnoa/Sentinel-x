@@ -856,3 +856,1129 @@ button {
     gap: 10px;
   }
 }
+/* =========================================================
+   USERS / ADMINISTRATION PAGE
+   ========================================================= */
+
+.users-page {
+  width: 100%;
+  max-width: 1380px;
+  margin: 0 auto;
+  padding: 32px 36px 48px;
+  box-sizing: border-box;
+}
+
+
+/* =========================================================
+   PAGE HEADER
+   ========================================================= */
+
+.users-page .page-header {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+}
+
+.page-title {
+  min-width: 0;
+}
+
+.page-title h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.page-title p {
+  margin: 7px 0 0;
+  font-size: 14px;
+  opacity: 0.58;
+}
+
+
+/* =========================================================
+   CONNECTED USER
+   ========================================================= */
+
+.user-info {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.logged-user {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  min-height: 40px;
+  padding: 0 14px;
+
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 9px;
+
+  background: rgba(255, 255, 255, 0.035);
+
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.logged-user strong {
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   ADMIN BADGE
+   ========================================================= */
+
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-left: 5px;
+  padding: 4px 9px;
+
+  border-radius: 999px;
+
+  background: rgba(80, 140, 255, 0.12);
+  border: 1px solid rgba(80, 140, 255, 0.2);
+
+  color: #4f8cff;
+
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+
+/* =========================================================
+   MAIN USERS PANEL
+   ========================================================= */
+
+.users-page .users-panel {
+  width: 100%;
+  max-width: 1240px;
+
+  margin: 0 auto;
+  padding: 28px;
+
+  box-sizing: border-box;
+
+  border-radius: 14px;
+
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+
+/* =========================================================
+   SECTION HEADER
+   ========================================================= */
+
+.users-panel .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 24px;
+
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.section-header h2 {
+  margin: 0;
+
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.section-description {
+  margin: 6px 0 0;
+
+  font-size: 13px;
+  line-height: 1.5;
+
+  opacity: 0.55;
+}
+
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  flex-shrink: 0;
+}
+
+
+/* =========================================================
+   ACTION BUTTONS
+   ========================================================= */
+
+.users-action-button,
+.user-action-button {
+  width: 170px;
+  min-width: 170px;
+  height: 40px;
+
+  padding: 0 14px;
+
+  box-sizing: border-box;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  white-space: nowrap;
+
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+
+  background: rgba(255, 255, 255, 0.045);
+  color: inherit;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
+}
+
+.users-action-button:hover,
+.user-action-button:hover {
+  background: rgba(255, 255, 255, 0.085);
+  border-color: rgba(255, 255, 255, 0.19);
+
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.12);
+}
+
+.users-action-button:active,
+.user-action-button:active {
+  transform: translateY(1px);
+}
+
+.users-action-button:disabled,
+.user-action-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+
+/* =========================================================
+   CREATE USER FORM
+   ========================================================= */
+
+.user-create-form {
+  margin-bottom: 28px;
+  padding: 24px;
+
+  border-radius: 12px;
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.035),
+      rgba(255, 255, 255, 0.018)
+    );
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+
+/* =========================================================
+   CREATE FORM HEADER
+   ========================================================= */
+
+.create-form-header {
+  margin-bottom: 22px;
+}
+
+.create-form-header h3 {
+  margin: 0;
+
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.create-form-header p {
+  margin: 5px 0 0;
+
+  font-size: 13px;
+  opacity: 0.52;
+}
+
+
+/* =========================================================
+   FORM GRID
+   ========================================================= */
+
+.form-grid {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(0, 1fr)
+    190px;
+
+  gap: 18px;
+
+  align-items: end;
+}
+
+
+/* =========================================================
+   FORM FIELD
+   ========================================================= */
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+
+  min-width: 0;
+
+  gap: 8px;
+}
+
+.form-field label {
+  display: block;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  color: rgba(255, 255, 255, 0.72);
+}
+
+
+/* =========================================================
+   CUSTOM INPUTS
+   ========================================================= */
+
+.form-field input,
+.modal .form-field input {
+  width: 100%;
+  height: 44px;
+
+  box-sizing: border-box;
+
+  padding: 0 14px;
+
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 9px;
+
+  background:
+    rgba(8, 10, 14, 0.55);
+
+  color: inherit;
+
+  outline: none;
+
+  font-family: inherit;
+  font-size: 13px;
+
+  box-shadow:
+    inset 0 1px 1px rgba(0, 0, 0, 0.16);
+
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
+}
+
+.form-field input:hover,
+.modal .form-field input:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.form-field input:focus,
+.modal .form-field input:focus {
+  border-color: rgba(80, 140, 255, 0.65);
+
+  background:
+    rgba(12, 17, 26, 0.8);
+
+  box-shadow:
+    0 0 0 3px rgba(80, 140, 255, 0.09),
+    inset 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+.form-field input::placeholder,
+.modal .form-field input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+
+/* =========================================================
+   PASSWORD INPUT
+   ========================================================= */
+
+.form-field input[type="password"],
+.modal .form-field input[type="password"] {
+  letter-spacing: 0.03em;
+}
+
+
+/* =========================================================
+   ROLE DISPLAY
+   ========================================================= */
+
+.role-display {
+  width: 100%;
+  height: 44px;
+
+  box-sizing: border-box;
+
+  display: flex;
+  align-items: center;
+
+  padding: 0 12px;
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9px;
+
+  background:
+    rgba(255, 255, 255, 0.025);
+}
+
+
+/* =========================================================
+   ROLE BADGES
+   ========================================================= */
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 5px 10px;
+
+  border-radius: 999px;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  white-space: nowrap;
+}
+
+.role-badge.role-admin {
+  background: rgba(80, 140, 255, 0.13);
+
+  border: 1px solid rgba(80, 140, 255, 0.18);
+
+  color: #6d9cff;
+}
+
+.role-badge.role-user {
+  background: rgba(100, 200, 130, 0.11);
+
+  border: 1px solid rgba(100, 200, 130, 0.17);
+
+  color: #69ce88;
+}
+
+
+/* =========================================================
+   CREATE FORM ACTIONS
+   ========================================================= */
+
+.create-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+
+  gap: 10px;
+
+  margin-top: 22px;
+  padding-top: 20px;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+
+/* =========================================================
+   USERS TABLE
+   ========================================================= */
+
+.users-table-wrapper {
+  width: 100%;
+
+  overflow-x: auto;
+
+  border-radius: 10px;
+
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.users-table {
+  width: 100%;
+
+  min-width: 850px;
+
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+
+/* =========================================================
+   TABLE HEADER
+   ========================================================= */
+
+.users-table th {
+  padding: 13px 16px;
+
+  text-align: left;
+
+  background:
+    rgba(255, 255, 255, 0.025);
+
+  border-bottom:
+    1px solid rgba(255, 255, 255, 0.08);
+
+  color: rgba(255, 255, 255, 0.52);
+
+  font-size: 11px;
+  font-weight: 700;
+
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.users-table th:first-child {
+  border-top-left-radius: 10px;
+}
+
+.users-table th:last-child {
+  border-top-right-radius: 10px;
+}
+
+
+/* =========================================================
+   TABLE CELLS
+   ========================================================= */
+
+.users-table td {
+  padding: 16px;
+
+  text-align: left;
+
+  border-bottom:
+    1px solid rgba(255, 255, 255, 0.055);
+
+  font-size: 13px;
+
+  vertical-align: middle;
+}
+
+.users-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.users-table tbody tr {
+  transition:
+    background 0.18s ease;
+}
+
+.users-table tbody tr:hover {
+  background:
+    rgba(255, 255, 255, 0.025);
+}
+
+
+/* =========================================================
+   USER NAME CELL
+   ========================================================= */
+
+.user-name-cell {
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+}
+
+.user-name-cell strong {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.current-user {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 3px 7px;
+
+  border-radius: 5px;
+
+  background: rgba(255, 255, 255, 0.06);
+
+  color: rgba(255, 255, 255, 0.52);
+
+  font-size: 10px;
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   CREATED DATE
+   ========================================================= */
+
+.created-date {
+  font-size: 12px;
+
+  color: rgba(255, 255, 255, 0.48);
+
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   TABLE ACTIONS
+   ========================================================= */
+
+.user-actions {
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  flex-wrap: nowrap;
+}
+
+.user-action-button {
+  width: 135px;
+  min-width: 135px;
+}
+
+.user-action-button.password {
+  background:
+    rgba(80, 140, 255, 0.07);
+}
+
+.user-action-button.password:hover {
+  background:
+    rgba(80, 140, 255, 0.13);
+}
+
+.user-action-button.delete {
+  background:
+    rgba(220, 70, 70, 0.07);
+}
+
+.user-action-button.delete:hover {
+  background:
+    rgba(220, 70, 70, 0.14);
+
+  border-color:
+    rgba(220, 70, 70, 0.24);
+}
+
+
+/* =========================================================
+   LOADING / EMPTY STATE
+   ========================================================= */
+
+.users-loading,
+.empty-state {
+  min-height: 180px;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 10px;
+
+  text-align: center;
+
+  border:
+    1px solid rgba(255, 255, 255, 0.06);
+
+  border-radius: 10px;
+
+  background:
+    rgba(255, 255, 255, 0.018);
+}
+
+.empty-state h3 {
+  margin: 0;
+
+  font-size: 16px;
+}
+
+.empty-state p {
+  margin: 0;
+
+  font-size: 13px;
+
+  opacity: 0.5;
+}
+
+
+/* =========================================================
+   MODAL OVERLAY
+   ========================================================= */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+
+  z-index: 1000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
+  box-sizing: border-box;
+
+  background:
+    rgba(0, 0, 0, 0.68);
+
+  backdrop-filter: blur(5px);
+}
+
+
+/* =========================================================
+   MODAL
+   ========================================================= */
+
+.modal {
+  width: 100%;
+  max-width: 500px;
+
+  box-sizing: border-box;
+
+  padding: 26px;
+
+  border:
+    1px solid rgba(255, 255, 255, 0.10);
+
+  border-radius: 14px;
+
+  background:
+    #15181d;
+
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.48);
+}
+
+.modal.modal-small {
+  max-width: 440px;
+}
+
+
+/* =========================================================
+   MODAL HEADER
+   ========================================================= */
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 18px;
+
+  margin-bottom: 24px;
+}
+
+.modal-header h2 {
+  margin: 0;
+
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.modal-header p {
+  margin: 7px 0 0;
+
+  font-size: 13px;
+  line-height: 1.5;
+
+  color: rgba(255, 255, 255, 0.52);
+}
+
+
+/* =========================================================
+   MODAL CLOSE
+   ========================================================= */
+
+.modal-close {
+  width: 34px;
+  height: 34px;
+
+  flex-shrink: 0;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+
+  background: rgba(255, 255, 255, 0.035);
+
+  color: rgba(255, 255, 255, 0.65);
+
+  font-size: 21px;
+  line-height: 1;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.modal-close:hover {
+  background:
+    rgba(255, 255, 255, 0.08);
+
+  color: white;
+}
+
+.modal-close:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   MODAL FORM
+   ========================================================= */
+
+.modal-form {
+  width: 100%;
+}
+
+.modal-form .form-field {
+  margin-bottom: 18px;
+}
+
+
+/* =========================================================
+   MODAL ERROR
+   ========================================================= */
+
+.modal-error {
+  margin-top: 4px;
+  padding: 11px 13px;
+
+  border:
+    1px solid rgba(220, 70, 70, 0.23);
+
+  border-radius: 8px;
+
+  background:
+    rgba(220, 70, 70, 0.075);
+
+  color: #e56b6b;
+
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+
+/* =========================================================
+   DELETE CONTENT
+   ========================================================= */
+
+.delete-content {
+  padding: 14px 0 4px;
+}
+
+.delete-content p {
+  margin: 0;
+
+  font-size: 14px;
+  line-height: 1.6;
+
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.delete-content strong {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+
+/* =========================================================
+   MODAL ACTIONS
+   ========================================================= */
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+
+  gap: 10px;
+
+  margin-top: 24px;
+  padding-top: 20px;
+
+  border-top:
+    1px solid rgba(255, 255, 255, 0.06);
+}
+
+.modal-button {
+  min-width: 120px;
+  height: 40px;
+
+  padding: 0 16px;
+
+  border-radius: 8px;
+
+  border:
+    1px solid rgba(255, 255, 255, 0.12);
+
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+
+/* =========================================================
+   DANGER BUTTON
+   ========================================================= */
+
+.button.danger {
+  background:
+    rgba(220, 70, 70, 0.10);
+
+  border-color:
+    rgba(220, 70, 70, 0.18);
+
+  color: #e56b6b;
+}
+
+.button.danger:hover {
+  background:
+    rgba(220, 70, 70, 0.17);
+
+  border-color:
+    rgba(220, 70, 70, 0.28);
+}
+
+
+/* =========================================================
+   ERROR
+   ========================================================= */
+
+.users-error {
+  width: 100%;
+  max-width: 1240px;
+
+  margin: 0 auto 20px;
+
+  box-sizing: border-box;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 15px;
+
+  padding: 12px 14px;
+
+  border:
+    1px solid rgba(220, 70, 70, 0.25);
+
+  border-radius: 8px;
+
+  background:
+    rgba(220, 70, 70, 0.08);
+
+  color: #e56b6b;
+
+  font-size: 13px;
+}
+
+.error-close {
+  width: 28px;
+  height: 28px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border: none;
+  border-radius: 6px;
+
+  background: transparent;
+
+  color: inherit;
+
+  font-size: 19px;
+
+  cursor: pointer;
+}
+
+.error-close:hover {
+  background:
+    rgba(255, 255, 255, 0.07);
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1100px) {
+
+  .users-page {
+    padding: 28px 24px 40px;
+  }
+
+  .users-page .page-header {
+    max-width: none;
+  }
+
+  .users-page .users-panel {
+    max-width: none;
+  }
+
+  .form-grid {
+    grid-template-columns:
+      1fr
+      1fr;
+  }
+
+  .form-grid .form-field:last-child {
+    grid-column: span 2;
+  }
+
+}
+
+
+@media (max-width: 800px) {
+
+  .users-page {
+    padding: 22px 16px 32px;
+  }
+
+  .users-page .page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .user-info {
+    justify-content: space-between;
+  }
+
+  .users-panel .section-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .section-actions {
+    width: 100%;
+  }
+
+  .section-actions .users-action-button {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid .form-field:last-child {
+    grid-column: auto;
+  }
+
+}
+
+
+@media (max-width: 600px) {
+
+  .users-page {
+    padding: 16px 12px 28px;
+  }
+
+  .users-page .users-panel {
+    padding: 18px;
+  }
+
+  .page-title h1 {
+    font-size: 23px;
+  }
+
+  .user-info {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .logged-user {
+    justify-content: space-between;
+  }
+
+  .user-info .users-action-button {
+    width: 100%;
+  }
+
+  .section-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .section-actions .users-action-button {
+    width: 100%;
+  }
+
+  .user-create-form {
+    padding: 18px;
+  }
+
+  .create-form-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .create-form-actions .users-action-button {
+    width: 100%;
+  }
+
+  .modal {
+    padding: 21px;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .modal-actions .users-action-button {
+    width: 100%;
+  }
+
+}}

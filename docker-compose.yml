@@ -65,7 +65,9 @@ services:
       MQTT_API_PASSWORD: ${MQTT_API_PASSWORD:?à définir dans .env}
       MQTT_CA: /certs/ca.crt
       INGEST_TOKEN: ${INGEST_TOKEN:?à définir dans .env}
-      DASHBOARD_TOKEN: ${DASHBOARD_TOKEN:?à définir dans .env}
+      # administrateur
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
     volumes:
       - ./certs/ca.crt:/certs/ca.crt:ro
     depends_on:

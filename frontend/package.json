@@ -9,8 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "build": "^0.1.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-router-dom": "^7.18.4",
     "recharts": "^3.2.1"
   },
   "devDependencies": {

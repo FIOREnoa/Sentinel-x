@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+} from "react-router-dom";
+
 import Header from "./components/Header";
 import StatusCards from "./components/StatusCards";
 import TelemetryCharts from "./components/TelemetryCharts";
@@ -9,6 +16,7 @@ import CameraPanel from "./components/CameraPanel";
 import DeviceControls from "./components/DeviceControls";
 
 import Login from "./components/Login";
+import Users from "./components/Users";
 
 import {
   acknowledgeAlert,
@@ -22,6 +30,11 @@ import {
 
 import { useWebSocket } from "./hooks/useWebSocket";
 
+
+/* =========================================================
+   DASHBOARD
+   ========================================================= */
+
 function Dashboard({ onLogout }) {
   const [health, setHealth] = useState(null);
   const [telemetry, setTelemetry] = useState([]);
@@ -32,6 +45,7 @@ function Dashboard({ onLogout }) {
   const [error, setError] = useState(null);
 
   const [wsStatus, setWsStatus] = useState("disconnected");
+
 
   const loadDashboard = useCallback(async () => {
     try {
@@ -45,11 +59,14 @@ function Dashboard({ onLogout }) {
         alertsResponse,
       ] = await Promise.all([
         getHealth(),
+
         getTelemetry({
           minutes: 60,
           limit: 500,
         }),
+
         getDevices(),
+
         getAlerts({
           limit: 50,
         }),
@@ -59,67 +76,38 @@ function Dashboard({ onLogout }) {
       setTelemetry(normalizeList(telemetryResponse));
       setDevices(normalizeList(devicesResponse));
       setAlerts(normalizeList(alertsResponse));
+
     } catch (err) {
-      console.error(err);
-      setError(err.message || "Impossible de charger le dashboard.");
+      console.error(
+        "Erreur chargement dashboard :",
+        err
+      );
+
+      setError(
+        err.message ||
+          "Impossible de charger le dashboard."
+      );
+
     } finally {
       setLoading(false);
     }
   }, []);
 
+
   useEffect(() => {
     loadDashboard();
   }, [loadDashboard]);
 
-  const handleWebSocketMessage = useCallback((message) => {
-    if (!message) {
-      return;
-    }
 
-    switch (message.kind) {
-      case "telemetry":
-        setTelemetry((previous) => {
-          const item = message.data ?? message.payload ?? message;
-
-          const next = [...previous, item];
-
-          return next.slice(-500);
-        });
-        break;
-
-      case "alert":
-        setAlerts((previous) => {
-          const alert = message.data ?? message.payload ?? message;
-
-          return [alert, ...previous].slice(0, 50);
-        });
-        break;
-
-      case "device":
-        updateDevice(message.data ?? message.payload ?? message);
-        break;
-
-      case "devices":
-        setDevices(normalizeList(message.data ?? message.payload ?? message));
-        break;
-
-      case "ack":
-        updateAlertAck(message);
-        break;
-
-      default:
-        console.debug("WebSocket message:", message);
-    }
-  }, []);
-
-  const updateDevice = (device) => {
+  const updateDevice = useCallback((device) => {
     if (!device?.device_id) {
       return;
     }
 
     setDevices((previous) => {
       const exists = previous.some(
-        (item) => item.device_id === device.device_id
+        (item) =>
+          item.device_id === device.device_id
       );
 
       if (!exists) {
@@ -132,9 +120,10 @@ function Dashboard({ onLogout }) {
           : item
       );
     });
-  };
+  }, []);
 
-  const updateAlertAck = (message) => {
+
+  const updateAlertAck = useCallback((message) => {
     const id =
       message?.id ??
       message?.alert_id ??
@@ -156,17 +145,114 @@ function Dashboard({ onLogout }) {
           : alert
       )
     );
-  };
+  }, []);
 
-  useWebSocket(handleWebSocketMessage, setWsStatus);
+
+  const handleWebSocketMessage = useCallback(
+    (message) => {
+      if (!message) {
+        return;
+      }
+
+      switch (message.kind) {
+
+        case "telemetry": {
+          setTelemetry((previous) => {
+            const item =
+              message.data ??
+              message.payload ??
+              message;
+
+            const next = [
+              ...previous,
+              item,
+            ];
+
+            return next.slice(-500);
+          });
+
+          break;
+        }
+
+
+        case "alert": {
+          setAlerts((previous) => {
+            const alert =
+              message.data ??
+              message.payload ??
+              message;
+
+            return [
+              alert,
+              ...previous,
+            ].slice(0, 50);
+          });
+
+          break;
+        }
+
+
+        case "device":
+
+          updateDevice(
+            message.data ??
+            message.payload ??
+            message
+          );
+
+          break;
+
+
+        case "devices":
+
+          setDevices(
+            normalizeList(
+              message.data ??
+              message.payload ??
+              message
+            )
+          );
+
+          break;
+
+
+        case "ack":
+
+          updateAlertAck(message);
+
+          break;
+
+
+        default:
+
+          console.debug(
+            "WebSocket message:",
+            message
+          );
+      }
+    },
+    [
+      updateDevice,
+      updateAlertAck,
+    ]
+  );
+
+
+  useWebSocket(
+    handleWebSocketMessage,
+    setWsStatus
+  );
+
 
   const handleAcknowledge = async (alertId) => {
     try {
+
       await acknowledgeAlert(alertId);
 
       setAlerts((previous) =>
         previous.map((alert) =>
-          String(alert.id) === String(alertId)
+          String(alert.id) ===
+          String(alertId)
             ? {
                 ...alert,
                 acknowledged: true,
@@ -175,11 +261,20 @@ function Dashboard({ onLogout }) {
             : alert
         )
       );
+
     } catch (err) {
-      console.error("Erreur acknowledge:", err);
-      alert("Impossible d'acquitter cette alerte.");
+
+      console.error(
+        "Erreur acknowledge:",
+        err
+      );
+
+      window.alert(
+        "Impossible d'acquitter cette alerte."
+      );
     }
   };
+
 
   const onlineDevices = useMemo(
     () =>
@@ -192,28 +287,53 @@ function Dashboard({ onLogout }) {
     [devices]
   );
 
+
   const latestTelemetry =
-    telemetry.length > 0 ? telemetry[telemetry.length - 1] : null;
+    telemetry.length > 0
+      ? telemetry[
+          telemetry.length - 1
+        ]
+      : null;
+
 
   return (
     <div className="app">
+
       <Header
         health={health}
         wsStatus={wsStatus}
         onlineDevices={onlineDevices}
       />
 
-      <button className="button button-secondary logout-button" onClick={onLogout}>
+
+      <button
+        className="button button-secondary logout-button"
+        onClick={onLogout}
+      >
         Déconnexion
       </button>
 
+
       <main className="dashboard">
+
         {error && (
           <div className="error-banner">
-            <strong>Erreur :</strong> {error}
-            <button onClick={loadDashboard}>Réessayer</button>
+
+            <strong>
+              Erreur :
+            </strong>{" "}
+
+            {error}
+
+            <button
+              onClick={loadDashboard}
+            >
+              Réessayer
+            </button>
+
           </div>
         )}
+
 
         <StatusCards
           telemetry={latestTelemetry}
@@ -221,36 +341,65 @@ function Dashboard({ onLogout }) {
           health={health}
         />
 
+
         <section className="dashboard-grid dashboard-grid-large">
-          <TelemetryCharts telemetry={telemetry} alerts={alerts} />
 
-          <DevicesPanel devices={devices} />
-        </section>
-
-        <section className="dashboard-grid">
-          <AlertsPanel
+          <TelemetryCharts
+            telemetry={telemetry}
             alerts={alerts}
-            onAcknowledge={handleAcknowledge}
           />
 
-          <CameraPanel alerts={alerts} />
+          <DevicesPanel
+            devices={devices}
+          />
+
         </section>
 
-        <section>
-          <DeviceControls devices={devices} />
+
+        <section className="dashboard-grid">
+
+          <AlertsPanel
+            alerts={alerts}
+            onAcknowledge={
+              handleAcknowledge
+            }
+          />
+
+          <CameraPanel
+            alerts={alerts}
+          />
+
         </section>
+
+
+        <section>
+
+          <DeviceControls
+            devices={devices}
+          />
+
+        </section>
+
 
         {loading && (
           <div className="loading-overlay">
             Chargement des données...
           </div>
         )}
+
       </main>
+
     </div>
   );
 }
 
+
+/* =========================================================
+   NORMALISATION DES LISTES
+   ========================================================= */
+
 function normalizeList(response) {
+
   if (Array.isArray(response)) {
     return response;
   }
@@ -270,32 +419,362 @@ function normalizeList(response) {
   return [];
 }
 
-// Écran de connexion tant qu'aucune session valide n'existe
-function App() {
-  const [authenticated, setAuthenticated] = useState(null);   // null = vérification en cours
+
+/* =========================================================
+   ROUTE PROTÉGÉE
+   ========================================================= */
+
+function ProtectedRoute({
+  currentUser,
+  children,
+}) {
+
+  if (!currentUser) {
+    return (
+      <Navigate
+        to="/login"
+        replace
+      />
+    );
+  }
+
+  return children;
+}
+
+
+/* =========================================================
+   ROUTE ADMIN
+   ========================================================= */
+
+function AdminRoute({
+  currentUser,
+  children,
+}) {
+
+  if (!currentUser) {
+    return (
+      <Navigate
+        to="/login"
+        replace
+      />
+    );
+  }
+
+  if (currentUser.role !== "admin") {
+    return (
+      <Navigate
+        to="/dashboard"
+        replace
+      />
+    );
+  }
+
+  return children;
+}
+
+
+/* =========================================================
+   APPLICATION
+   ========================================================= */
+
+function AppContent() {
+
+  const [currentUser, setCurrentUser] =
+    useState(null);
+
+  const [authLoading, setAuthLoading] =
+    useState(true);
+
+
+  /* ---------------------------------------------------------
+     RESTAURATION DE LA SESSION
+     --------------------------------------------------------- */
 
   useEffect(() => {
-    checkSession().then(setAuthenticated);
-    const onUnauthorized = () => setAuthenticated(false);
-    window.addEventListener("sentinel:unauthorized", onUnauthorized);
-    return () => window.removeEventListener("sentinel:unauthorized", onUnauthorized);
+
+    let mounted = true;
+
+    const restoreSession =
+      async () => {
+
+        try {
+
+          const result =
+            await checkSession();
+
+          console.log(
+            "Session actuelle :",
+            result
+          );
+
+
+          if (!mounted) {
+            return;
+          }
+
+
+          if (
+            result?.ok === true &&
+            result?.user
+          ) {
+
+            setCurrentUser(
+              result.user
+            );
+
+          } else {
+
+            setCurrentUser(null);
+
+          }
+
+        } catch (err) {
+
+          console.error(
+            "Erreur vérification session :",
+            err
+          );
+
+          if (mounted) {
+            setCurrentUser(null);
+          }
+
+        } finally {
+
+          if (mounted) {
+            setAuthLoading(false);
+          }
+
+        }
+      };
+
+
+    restoreSession();
+
+
+    return () => {
+      mounted = false;
+    };
+
   }, []);
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } finally {
-      setAuthenticated(false);
-    }
-  };
 
-  if (authenticated === null) {
-    return <div className="loading-overlay">Vérification de la session...</div>;
+  /* ---------------------------------------------------------
+     CONNEXION
+     --------------------------------------------------------- */
+
+  const handleLoginSuccess =
+    (result) => {
+
+      console.log(
+        "Connexion réussie :",
+        result
+      );
+
+
+      if (
+        result?.ok === true &&
+        result?.user
+      ) {
+
+        setCurrentUser(
+          result.user
+        );
+
+      }
+
+    };
+
+
+  /* ---------------------------------------------------------
+     DÉCONNEXION
+     --------------------------------------------------------- */
+
+  const handleLogout =
+    async () => {
+
+      try {
+
+        await logout();
+
+      } catch (err) {
+
+        console.error(
+          "Erreur logout :",
+          err
+        );
+
+      } finally {
+
+        setCurrentUser(null);
+
+      }
+
+    };
+
+
+  /* ---------------------------------------------------------
+     CHARGEMENT SESSION
+     --------------------------------------------------------- */
+
+  if (authLoading) {
+
+    return (
+      <div className="loading-overlay">
+        Vérification de la session...
+      </div>
+    );
+
   }
-  if (!authenticated) {
-    return <Login onSuccess={() => setAuthenticated(true)} />;
-  }
-  return <Dashboard onLogout={handleLogout} />;
+
+
+  /* ---------------------------------------------------------
+     ROUTING
+     --------------------------------------------------------- */
+
+  return (
+    <Routes>
+
+      {/* =========================
+          LOGIN
+          ========================= */}
+
+      <Route
+        path="/login"
+        element={
+          currentUser ? (
+            <Navigate
+              to={
+                currentUser.role === "admin"
+                  ? "/administration"
+                  : "/dashboard"
+              }
+              replace
+            />
+          ) : (
+            <Login
+              onSuccess={
+                handleLoginSuccess
+              }
+            />
+          )
+        }
+      />
+
+
+      {/* =========================
+          DASHBOARD
+          ========================= */}
+
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute
+            currentUser={
+              currentUser
+            }
+          >
+            <Dashboard
+              onLogout={
+                handleLogout
+              }
+            />
+          </ProtectedRoute>
+        }
+      />
+
+
+      {/* =========================
+          ADMINISTRATION
+          ========================= */}
+
+      <Route
+        path="/administration"
+        element={
+          <AdminRoute
+            currentUser={
+              currentUser
+            }
+          >
+            <Users
+              onLogout={
+                handleLogout
+              }
+            />
+          </AdminRoute>
+        }
+      />
+
+
+      {/* =========================
+          RACINE
+          ========================= */}
+
+      <Route
+        path="/"
+        element={
+          currentUser ? (
+            <Navigate
+              to={
+                currentUser.role === "admin"
+                  ? "/administration"
+                  : "/dashboard"
+              }
+              replace
+            />
+          ) : (
+            <Navigate
+              to="/login"
+              replace
+            />
+          )
+        }
+      />
+
+
+      {/* =========================
+          URL INCONNUE
+          ========================= */}
+
+      <Route
+        path="*"
+        element={
+          currentUser ? (
+            <Navigate
+              to={
+                currentUser.role === "admin"
+                  ? "/administration"
+                  : "/dashboard"
+              }
+              replace
+            />
+          ) : (
+            <Navigate
+              to="/login"
+              replace
+            />
+          )
+        }
+      />
+
+    </Routes>
+  );
 }
+
+
+/* =========================================================
+   BROWSER ROUTER
+   ========================================================= */
+
+function App() {
+
+  return (
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
+  );
+
+}
+
 
 export default App;
