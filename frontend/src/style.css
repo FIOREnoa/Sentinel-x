@@ -806,38 +806,53 @@ button {
   bottom: 16px;
   right: 16px;
   z-index: 10;
-}/* REPÈRES D'ALERTE ET CAMÉRA EN DIRECT (à coller à la fin de frontend/src/style.css) */
-
-.chart-markers-legend {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 18px;
-
-  padding: 0 18px 16px;
-
-  color: #8d9ca7;
-  font-size: 11px;
 }
 
-.chart-markers-legend span {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.chart-markers-legend i {
-  display: inline-block;
-  width: 3px;
-  height: 14px;
-  border-radius: 2px;
-}
-
-.chart-markers-count {
-  margin-left: auto;
-}
+/* CAMÉRA EN DIRECT */
 
 .camera-live {
   aspect-ratio: 4 / 3;
   object-fit: contain !important;
+}
+
+/* GRAPHIQUES : sélecteur de période */
+
+.range-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.range-button {
+  padding: 5px 10px;
+
+  border: 1px solid #263642;
+  border-radius: 6px;
+
+  background: #101a22;
+  color: #9caab5;
+
+  font-size: 11px;
+}
+
+.range-button:hover {
+  background: #17242e;
+}
+
+.range-button.active {
+  border-color: #31566a;
+  background: #153242;
+  color: #e6edf3;
+}
+
+.chart-error {
+  margin: 12px 18px 0;
+}
+
+@media (max-width: 650px) {
+  .charts-panel .panel-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
 }

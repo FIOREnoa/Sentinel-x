@@ -1,6 +1,5 @@
 // Modèle de configuration du boîtier SENTINEL-X.
-// Copier ce fichier en "secrets.h" dans le même dossier, puis remplacer les valeurs.
-// secrets.h est ignoré par Git : ne jamais y mettre de vraies valeurs dans ce fichier-ci.
+
 #pragma once
 
 // Point d'accès Wi-Fi du PC serveur (bande 2,4 GHz, sécurité WPA2)
@@ -11,6 +10,12 @@
 #define MQTT_USER "esp01"
 #define MQTT_PASS "mot_de_passe_mqtt_du_boitier"
 
+#Jeton du flux vidéo (partagé entre nginx et le conteneur vision)
+STREAM_TOKEN=a_remplacer
+
+#Démarre aussi le conteneur vision avec "docker compose up -d"
+COMPOSE_PROFILES=vision
+
 // Certificat de l'autorité de certification du groupe :
 // coller ici le contenu de certs/ca.crt (généré par le service "setup" du docker compose)
 static const char CA_PEM[] PROGMEM = R"EOF(
@@ -18,3 +23,4 @@ static const char CA_PEM[] PROGMEM = R"EOF(
 contenu_de_certs/ca.crt
 -----END CERTIFICATE-----
 )EOF";
+

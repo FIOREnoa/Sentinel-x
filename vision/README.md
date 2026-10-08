@@ -26,13 +26,13 @@ $env:CAMERA="0"; $env:STREAM_TOKEN="test"; python sentinel_vision.py
 
 Le flux est alors sur `http://localhost:8000/stream?token=test`.
 
-## Lancement dans Docker (Linux uniquement)
+## Lancement dans Docker (configuration de l'équipe)
 
-Docker ne peut accéder à la webcam que si l'hôte est sous Linux. Sur Windows et macOS, Docker Desktop tourne dans une VM qui ne voit pas le périphérique USB : lancez le script hors Docker.
+Docker Desktop sous Windows tourne dans une machine virtuelle qui ne voit pas les périphériques USB. La webcam est donc lue sous Windows par ffmpeg (`tools/start_camera.ps1`), qui diffuse l'image en MPEG-TS sur `tcp://127.0.0.1:1235`. Le service `vision` du `docker-compose.yml` s'y connecte avec `CAMERA=tcp://host.docker.internal:1235`.
 
-Le serveur de l'équipe étant sous Windows, ce service n'est pas dans le `docker-compose.yml` principal. Le `Dockerfile` reste là pour un hôte Linux.
+Le service est activé par `COMPOSE_PROFILES=vision` dans le `.env` principal, et ses réglages sont dans le `docker-compose.yml` : `IMGSZ=320` (environ 18 ms d'inférence par image sur le processeur), `JPEG_QUALITY=60`, alertes envoyées à `https://nginx:8443/api/v1/alerts`, flux en HTTPS avec le certificat du projet. Le port 8000 n'est publié que sur `127.0.0.1` : depuis le réseau, le flux passe par nginx (`/camera/stream`), réservé aux utilisateurs connectés au dashboard.
 
-Si `TLS_CERT` est renseigné, le serveur passe en HTTPS et le healthcheck du compose doit appeler `https://` au lieu de `http://`.
+Sur un hôte Linux, la webcam peut être donnée directement au conteneur (`devices: ["/dev/video0"]`, `CAMERA=0`).
 
 ## Raspberry Pi 5 (option A)
 
