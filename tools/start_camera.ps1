@@ -1,4 +1,4 @@
-# Diffuse la webcam USB vers le conteneur vision (qui se connecte en TCP sur 127.0.0.1:1235).
+ge# Diffuse la webcam USB vers le conteneur vision (qui se connecte en TCP sur 127.0.0.1:1235).
 # Le nom de la caméra s'obtient avec : ffmpeg -list_devices true -f dshow -i dummy
 param([string]$Camera = "Web Camera")
 while ($true) {
